@@ -40,7 +40,7 @@ session-recall files --json
 # Recent checkpoints
 session-recall checkpoints --json
 
-# 8-dimension health check
+# 9-dimension health check
 session-recall health
 
 # Validate DB schema (run after Copilot CLI upgrades)
