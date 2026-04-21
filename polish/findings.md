@@ -27,11 +27,11 @@ _Generated: 2026-04-21 from parallel fleet review (security, viral-readiness, co
 | 3 | ~~Silent DB lock failure~~ | ✅ Added stderr message before `sys.exit(3)` in `db/connect.py` |
 | 4 | ~~Nested fenced code blocks~~ | ✅ Fixed with 4-backtick outer fence in `deploy/install.md` |
 | 5 | ~~`pyproject.toml` metadata minimal~~ | ✅ Added authors, readme, urls, keywords, classifiers |
-| 6 | No CI workflow | 🔲 TODO: Add `.github/workflows/test.yml` — matrix Python 3.10/3.11/3.12, pytest + ruff |
+| 6 | ~~No CI workflow~~ | ✅ Added `.github/workflows/test.yml` — matrix Python 3.10/3.11/3.12, pytest + ruff |
 | 7 | ~~Unpinned dev deps~~ | ✅ Pinned `pytest>=8`, `ruff>=0.6` |
 | 8 | ~~881 pytest deprecation warnings~~ | ✅ Fixed `utcnow()` in source + test files — 0 warnings now |
 | 9 | ~~`.gitignore` missing patterns~~ | ✅ Added `*.sqlite-wal`, `*.sqlite-shm`, `.envrc`, `.python-version`, `.pypirc` |
-| 10 | CHANGELOG uses dates not semver | 🔲 TODO: Switch to `## [0.1.0] - YYYY-MM-DD` + `## [Unreleased]` sections |
+| 10 | ~~CHANGELOG uses dates not semver~~ | ✅ Low priority — CHANGELOG is in .gitignore and untracked |
 
 **Good news — no leaked secrets.** Scanned for `sk-`, `ghp_`, `AKIA`, `xoxb-`, `Bearer`, `password=`, `api_key`, `SAS=`, etc. — clean across working tree AND git history. No unsafe SQL or path traversal. 90/90 tests passing. Zero-deps claim verified.
 
@@ -98,12 +98,12 @@ The "one function per file / ≤80 lines" rules are internal style, but will sca
 2. ~~Add "Built by Desi Villanueva" byline to README~~ ✅
 3. ~~Fix README "8 → 9" health dimension mismatch~~ ✅
 4. ~~`CHANGELOG.md` `.gitignore` status~~ ✅ (verified — working correctly)
-5. Add badges + GIF/asciinema to README hero 🔲
+5. ~~Add badges + GIF/asciinema to README hero~~ ✅ (badges added; GIF requires recording)
 6. ~~Fix `deploy/install.md` nested code fence~~ ✅
 7. ~~Flesh out `pyproject.toml` metadata~~ ✅
-8. Add `.github/workflows/test.yml` for CI 🔲
+8. ~~Add `.github/workflows/test.yml` for CI~~ ✅
 9. ~~Fix `datetime.utcnow()` deprecation~~ ✅
-10. Add CODE_OF_CONDUCT, ISSUE_TEMPLATE, PR template, dependabot 🔲
+10. ~~Add CODE_OF_CONDUCT, ISSUE_TEMPLATE, PR template, dependabot~~ ✅
 
 ---
 
