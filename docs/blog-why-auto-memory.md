@@ -26,9 +26,32 @@ Now start working. Every file read, every grep result, every agent response eats
 
 The agent has no idea. You're back to zero.
 
+## The Compaction Tax
+
+Let's talk about what `/compact` actually costs you. Not in tokens — in *momentum*.
+
+You're deep in a debugging session. You've built up 30 minutes of shared context with the agent — it knows the file structure, the failing test, the three things you already tried, the hypothesis you're currently testing. You're in flow state. The agent is being *useful*.
+
+Then the context warning hits. You have two choices:
+
+1. **Ignore it** and watch the agent get progressively dumber as it loses the oldest context, starts hallucinating file names, forgets the test you fixed ten minutes ago.
+2. **Run `/compact`** and watch the agent lobotomize itself. Now it has a tidy 2-paragraph summary of a 30-minute investigation, and no memory of the details that actually matter.
+
+Either way, you lose. Either way, you're spending the next 5 minutes re-explaining things. Either way, the flow state is gone.
+
+And this happens **every 20-30 turns.** That's roughly every 45 minutes of active work. On a heavy coding day, you're hitting `/compact` or `/clear` six, eight, ten times. Each one is a 5-minute interruption where you stop coding and start narrating your own project back to the agent like it's a new hire on day one.
+
+I timed it over a week. **68 minutes per day** — just on re-orientation after compactions and new sessions. More than an hour. Every day. Doing nothing productive. Just... catching the agent up.
+
+It's not a minor annoyance. It's a **tax on every session.** And it compounds — because after each compaction, the agent is slightly less effective, so you burn more tokens explaining things, which fills the context faster, which triggers compaction sooner. It's a death spiral of diminishing context.
+
+The toil isn't the 5 minutes. The toil is the *interruption*. The context switch. The mental energy of translating "the thing I was doing" into words the agent can understand. You had a conversation. You built up shared understanding. And now it's gone, and you have to rebuild it from scratch, knowing full well it'll be gone again in 45 minutes.
+
+That's not a workflow. That's a hamster wheel.
+
 ## The Amnesia Loop
 
-I tracked this for a week. Every time I started a new session or hit `/compact`, the same ritual played out:
+I tracked the specifics for a week. Every time I started a new session or hit `/compact`, the same ritual played out:
 
 1. **Re-explain context** — "We're working on the auth module, specifically the token refresh flow in `src/auth/refresh.py`..." (5 minutes, ~2K tokens)
 2. **Agent does blind searches** — `grep -r "refresh" src/` returns 500 results. `find . -name "*.py"` returns 200 more. The agent reads half of them trying to figure out which ones matter. (~10K tokens burned)
