@@ -10,17 +10,17 @@ Copilot CLI stores session history locally but has no built-in way to query it. 
 
 ## Install
 
+Tell your AI agent:
+
+> Read `deploy/install.md` and follow every step.
+
+Or run manually:
+
 ```bash
-# Option 1: uv (recommended)
-cd auto-memory
-uv pip install -e .
-
-# Option 2: pip
-pip install -e .
-
-# Option 3: run directly
-PYTHONPATH=src python3 -m session_recall <command>
+./install.sh
 ```
+
+See [`deploy/install.md`](deploy/install.md) for full instructions, agent integration, and troubleshooting.
 
 ## Usage
 
@@ -70,31 +70,71 @@ Dim Name                   Zone     Score  Detail
 - **Schema-aware** — validates expected schema on every call, fails fast on drift
 - **Telemetry** — ring buffer of last 100 invocations for concurrency monitoring
 
+## How It Works
+
+auto-memory is **instruction-driven** — it doesn't use hooks, MCP servers, or plugins. Instead, you add a block of text to your Copilot CLI instruction file that tells the agent to run `auto-memory` commands at the start of every prompt.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  You install auto-memory (puts CLI on your PATH)        │
+│                         ▼                               │
+│  You paste the template into copilot-instructions.md    │
+│                         ▼                               │
+│  Copilot CLI reads instructions on every session start  │
+│                         ▼                               │
+│  Agent sees: "Run auto-memory FIRST on every prompt"    │
+│                         ▼                               │
+│  Agent runs: auto-memory files --json --limit 10        │
+│              auto-memory list --json --limit 5          │
+│                         ▼                               │
+│  Agent gets structured context about your past sessions │
+│  before answering — no blind searches needed            │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Why instructions instead of hooks?** Portable, zero infrastructure, works with any agent that reads instruction files. No config, no daemon, no server — just a CLI tool and a text block.
+
 ## Agent Integration
 
-To enable your AI agent to automatically recall past sessions, copy the template from [`copilot-instructions-template.md`](copilot-instructions-template.md) into your Copilot CLI instruction file:
+### Step 1: Install auto-memory
+
+```bash
+./install.sh
+# or: uv pip install -e .
+# or: pip install -e .
+```
+
+### Step 2: Add instructions to Copilot CLI
+
+Copilot CLI reads `~/.copilot/copilot-instructions.md` at the start of every session. This file tells the agent what tools to use and how to behave.
+
+Copy the template into your instruction file:
 
 ```bash
 # Create the file if it doesn't exist
 mkdir -p ~/.copilot
 touch ~/.copilot/copilot-instructions.md
 
-# Append the template
+# Append the auto-memory instructions
 cat copilot-instructions-template.md >> ~/.copilot/copilot-instructions.md
 ```
 
-### What is `~/.copilot/copilot-instructions.md`?
+The template is in [`copilot-instructions-template.md`](copilot-instructions-template.md) — it tells the agent to run `auto-memory` commands before each prompt to check for relevant past context.
 
-Copilot CLI reads this file at the start of every session. It tells the agent what tools to use and what context to gather. By adding auto-memory instructions, the agent will automatically check your session history before each prompt — so it always knows what you were working on.
-
-### Verify integration
+### Step 3: Verify
 
 ```bash
 # In a Copilot CLI session, ask:
 "Run auto-memory health and show me the output"
 ```
 
+If the agent runs the command and shows health results, integration is working.
+
 See [`UPGRADE-COPILOT-CLI.md`](UPGRADE-COPILOT-CLI.md) for schema validation after Copilot CLI upgrades.
+
+## Disclaimer
+
+This is an independent open-source project. It is **not** affiliated with, endorsed by, or supported by Microsoft, GitHub, or any other company. There is no official support — use at your own risk. Contributions and issues are welcome on GitHub.
 
 ## License
 
