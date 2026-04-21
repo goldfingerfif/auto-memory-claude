@@ -1,15 +1,81 @@
+# === Python ===
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 *.egg-info/
+*.egg
 dist/
 build/
+*.whl
 .venv/
+venv/
+env/
 .pytest_cache/
 .mypy_cache/
-.session-recall-stats.json
-*.db
-*.sqlite
+.ruff_cache/
+htmlcov/
+.coverage
+.tox/
+.nox/
+
+# === Secrets & Environment ===
 .env
 .env.*
+.env.local
+.env.production
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+credentials/
+service-account*.json
+
+# === AI Agent / Copilot / Claude ===
+CLAUDE.md
+.claude/
+.copilot/
+.agent-memory/
+.cursorrules
+.cursor/
+.aider*
+
+# === PII & Sensitive Data ===
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.db
+*.sqlite
+*.sqlite3
+*.sql.gz
+*.dump
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
+Desktop.ini
+._*
+
+# === IDE / Editor ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# === Project-specific ===
+.session-recall-stats.json
 uv.lock
+
+# === Logs & Temp ===
+*.log
+logs/
+tmp/
+temp/
+*.bak
+*.tmp

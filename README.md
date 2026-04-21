@@ -70,65 +70,9 @@ Dim Name                   Zone     Score  Detail
 - **Schema-aware** — validates expected schema on every call, fails fast on drift
 - **Telemetry** — ring buffer of last 100 invocations for concurrency monitoring
 
-## How It Works
-
-auto-memory is **instruction-driven** — it doesn't use hooks, MCP servers, or plugins. Instead, you add a block of text to your Copilot CLI instruction file that tells the agent to run `auto-memory` commands at the start of every prompt.
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  You install auto-memory (puts CLI on your PATH)        │
-│                         ▼                               │
-│  You paste the template into copilot-instructions.md    │
-│                         ▼                               │
-│  Copilot CLI reads instructions on every session start  │
-│                         ▼                               │
-│  Agent sees: "Run auto-memory FIRST on every prompt"    │
-│                         ▼                               │
-│  Agent runs: auto-memory files --json --limit 10        │
-│              auto-memory list --json --limit 5          │
-│                         ▼                               │
-│  Agent gets structured context about your past sessions │
-│  before answering — no blind searches needed            │
-└─────────────────────────────────────────────────────────┘
-```
-
-**Why instructions instead of hooks?** Portable, zero infrastructure, works with any agent that reads instruction files. No config, no daemon, no server — just a CLI tool and a text block.
-
 ## Agent Integration
 
-### Step 1: Install auto-memory
-
-```bash
-./install.sh
-# or: uv pip install -e .
-# or: pip install -e .
-```
-
-### Step 2: Add instructions to Copilot CLI
-
-Copilot CLI reads `~/.copilot/copilot-instructions.md` at the start of every session. This file tells the agent what tools to use and how to behave.
-
-Copy the template into your instruction file:
-
-```bash
-# Create the file if it doesn't exist
-mkdir -p ~/.copilot
-touch ~/.copilot/copilot-instructions.md
-
-# Append the auto-memory instructions
-cat copilot-instructions-template.md >> ~/.copilot/copilot-instructions.md
-```
-
-The template is in [`copilot-instructions-template.md`](copilot-instructions-template.md) — it tells the agent to run `auto-memory` commands before each prompt to check for relevant past context.
-
-### Step 3: Verify
-
-```bash
-# In a Copilot CLI session, ask:
-"Run auto-memory health and show me the output"
-```
-
-If the agent runs the command and shows health results, integration is working.
+Installation includes wiring auto-memory into `~/.copilot/copilot-instructions.md` so your agent runs session recall automatically. See [`deploy/install.md`](deploy/install.md) for setup.
 
 See [`UPGRADE-COPILOT-CLI.md`](UPGRADE-COPILOT-CLI.md) for schema validation after Copilot CLI upgrades.
 

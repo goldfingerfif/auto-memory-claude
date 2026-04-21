@@ -1,9 +1,8 @@
-# auto-memory — Copilot CLI Integration Template
+# auto-memory — Copilot Instructions Template
 
-Copy the block below into your Copilot CLI instruction file:
+> **Note:** For installation, use [`deploy/install.md`](deploy/install.md) — it handles everything including appending this template automatically.
 
-- **User-level (recommended):** `~/.copilot/copilot-instructions.md`
-- **Repo-level:** `.github/copilot-instructions.md`
+This file contains the raw instruction block for manual reference. Copy the block below into `~/.copilot/copilot-instructions.md` if you prefer manual setup.
 
 ---
 
