@@ -6,13 +6,14 @@ from ..util.detect_repo import detect_repo
 HINT = "Run in a git repo or pass --repo all"
 
 
-def check() -> dict:
+def check(backend=None) -> dict:
+    db_path = backend.db_path if backend is not None else DB_PATH
     repo = detect_repo()
     if not repo:
         return {"name": "Repo Coverage", "score": 1, "zone": "RED",
                 "detail": "Cannot detect repo from cwd", "hint": HINT}
     try:
-        conn = connect_ro(DB_PATH)
+        conn = connect_ro(db_path)
         count = conn.execute(
             "SELECT COUNT(*) FROM sessions WHERE repository = ?", (repo,)
         ).fetchone()[0]

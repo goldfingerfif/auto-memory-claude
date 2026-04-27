@@ -23,11 +23,13 @@ _QUERY_ALL = """
     ORDER BY s.created_at DESC LIMIT ?"""
 
 
-def run(args) -> int:
+def run(args, backend=None) -> int:
     """Execute the list subcommand. Returns exit code."""
+    db_path = backend.db_path if backend is not None else DB_PATH
+    expected = backend.expected_schema if backend is not None else None
     repo = args.repo or detect_repo()
-    conn = connect_ro(DB_PATH)
-    problems = schema_check(conn)
+    conn = connect_ro(db_path)
+    problems = schema_check(conn, expected)
     if problems:
         print("❌ Schema drift:", file=sys.stderr)
         for p in problems:

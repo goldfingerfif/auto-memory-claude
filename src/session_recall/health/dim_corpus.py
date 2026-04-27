@@ -6,9 +6,10 @@ from .scoring import score_dim
 HINT = "Cold start — will improve with usage"
 
 
-def check() -> dict:
+def check(backend=None) -> dict:
+    db_path = backend.db_path if backend is not None else DB_PATH
     try:
-        conn = connect_ro(DB_PATH)
+        conn = connect_ro(db_path)
         count = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
         conn.close()
     except Exception as e:

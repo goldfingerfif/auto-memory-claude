@@ -5,9 +5,10 @@ from ..config import DB_PATH
 HINT = "Check exit code and stderr from individual commands"
 
 
-def check() -> dict:
+def check(backend=None) -> dict:
+    db_path = backend.db_path if backend is not None else DB_PATH
     try:
-        conn = connect_ro(DB_PATH)
+        conn = connect_ro(db_path)
         # Step 1: list
         sessions = conn.execute(
             "SELECT id, summary FROM sessions ORDER BY created_at DESC LIMIT 1"
@@ -15,7 +16,7 @@ def check() -> dict:
         if not sessions:
             conn.close()
             return {"name": "E2E Probe", "score": 5, "zone": "AMBER",
-                    "detail": "No sessions found", "hint": "Use Copilot CLI first"}
+                    "detail": "No sessions found", "hint": "Use the upstream agent first"}
         # Step 2: show (drill into first session)
         sid = sessions[0]["id"]
         turns = conn.execute(

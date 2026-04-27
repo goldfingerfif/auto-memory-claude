@@ -3,14 +3,18 @@ import subprocess
 import re
 
 
-def detect_repo() -> str | None:
-    """Return 'owner/repo' from git remote origin, or None."""
+def detect_repo(cwd: str | None = None) -> str | None:
+    """Return 'owner/repo' from git remote origin, or None.
+
+    `cwd` lets the ingestor resolve a session's repository from the JSONL's
+    cwd field rather than the CLI's current directory.
+    """
     try:
         url = subprocess.run(
             ["git", "remote", "get-url", "origin"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, timeout=5, cwd=cwd,
         ).stdout.strip()
-    except (subprocess.TimeoutExpired, FileNotFoundError):
+    except (subprocess.TimeoutExpired, FileNotFoundError, NotADirectoryError, OSError):
         return None
     if not url:
         return None

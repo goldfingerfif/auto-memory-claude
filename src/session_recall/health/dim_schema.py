@@ -6,10 +6,12 @@ from ..config import DB_PATH
 HINT = "Run `session-recall schema-check` for details"
 
 
-def check() -> dict:
+def check(backend=None) -> dict:
+    db_path = backend.db_path if backend is not None else DB_PATH
+    expected = backend.expected_schema if backend is not None else None
     try:
-        conn = connect_ro(DB_PATH)
-        problems = schema_check(conn)
+        conn = connect_ro(db_path)
+        problems = schema_check(conn, expected)
         conn.close()
     except SystemExit:
         return {"name": "Schema Integrity", "score": 0, "zone": "RED",

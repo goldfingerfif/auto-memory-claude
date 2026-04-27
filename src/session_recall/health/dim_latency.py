@@ -7,9 +7,10 @@ from .scoring import score_dim
 HINT = "Check DB size or run PRAGMA integrity_check"
 
 
-def check() -> dict:
+def check(backend=None) -> dict:
+    db_path = backend.db_path if backend is not None else DB_PATH
     try:
-        conn = connect_ro(DB_PATH)
+        conn = connect_ro(db_path)
         t0 = time.monotonic()
         conn.execute("SELECT id, summary FROM sessions ORDER BY created_at DESC LIMIT 10").fetchall()
         rows = conn.execute("SELECT id FROM sessions LIMIT 1").fetchone()

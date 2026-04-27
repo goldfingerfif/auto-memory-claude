@@ -1,4 +1,9 @@
-"""Schema validation against expected Copilot CLI session-store.db structure."""
+"""Schema validation against expected session-store DB structure.
+
+`EXPECTED_SCHEMA` is the Copilot CLI shape; the Claude Code backend mirrors
+this exact shape in its index DB so this check is reusable across backends.
+Pass `expected=` to validate against a different schema dict.
+"""
 
 EXPECTED_SCHEMA: dict[str, set[str]] = {
     "sessions": {"id", "repository", "branch", "summary", "created_at", "updated_at"},
@@ -9,10 +14,15 @@ EXPECTED_SCHEMA: dict[str, set[str]] = {
 }
 
 
-def schema_check(conn) -> list[str]:
-    """Validate DB schema. Returns list of problems (empty = OK)."""
+def schema_check(conn, expected: dict[str, set[str]] | None = None) -> list[str]:
+    """Validate DB schema. Returns list of problems (empty = OK).
+
+    `expected` defaults to EXPECTED_SCHEMA (Copilot/Claude-index shape).
+    """
+    if expected is None:
+        expected = EXPECTED_SCHEMA
     problems: list[str] = []
-    for table, expected_cols in EXPECTED_SCHEMA.items():
+    for table, expected_cols in expected.items():
         rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
         if not rows:
             problems.append(f"MISSING TABLE: {table}")

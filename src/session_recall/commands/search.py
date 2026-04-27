@@ -46,9 +46,11 @@ def sanitize_fts5_query(raw: str) -> str | None:
     return " ".join(safe_tokens)
 
 
-def run(args) -> int:
-    conn = connect_ro(DB_PATH)
-    problems = schema_check(conn)
+def run(args, backend=None) -> int:
+    db_path = backend.db_path if backend is not None else DB_PATH
+    expected = backend.expected_schema if backend is not None else None
+    conn = connect_ro(db_path)
+    problems = schema_check(conn, expected)
     if problems:
         for p in problems:
             print(f"   - {p}", file=sys.stderr)
