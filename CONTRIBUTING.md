@@ -28,16 +28,27 @@ These are guidelines, not gates. Don't let style concerns stop you from submitti
 
 ## Adding a Subcommand
 
-1. Create `src/session_recall/commands/your_command.py` with `def run(args) -> int`
+1. Create `src/session_recall/commands/your_command.py` with `def run(args, backend=None) -> int`
 2. Add argparse subparser in `__main__.py`
-3. Add dispatch `elif` in `__main__.py`
-4. Add tests in `tests/test_your_command.py`
+3. Add dispatch `elif` in `__main__.py` (pass `backend` through)
+4. Add a `TIER_MAP` entry in `__main__.py`
+5. Add tests in `tests/test_your_command.py`
 
 ## Adding a Health Dimension
 
-1. Create `src/session_recall/health/dim_your_dim.py` with `def check() -> dict`
-2. Return `{"name", "score", "zone", "detail", "hint"}`
+1. Create `src/session_recall/health/dim_your_dim.py` with `def check(backend=None) -> dict`
+2. Return `{"name", "score", "zone", "detail", "hint"}` — use `score=None, zone="N/A"` when the dim doesn't apply to the active backend
 3. Import and add to `DIMS` list in `commands/health.py`
+
+## Adding a Backend
+
+session-recall supports multiple session-store backends behind a small interface. To add one (e.g. Cursor, Codex):
+
+1. Create `src/session_recall/backends/your_backend.py` exposing `def build() -> Backend`
+2. Register it in `src/session_recall/backends/__init__.py` (`REGISTRY` dict + an `_xxx_present()` detector)
+3. If the upstream tool doesn't already maintain a SQLite store, write an ingestor under `src/session_recall/ingest/` that produces a Copilot-shaped DB (see `backends/claude_code.py` and `ingest/run.py` as the reference example)
+4. Add tests under `tests/` with fixture data — no live agent dependency
+5. Document setup in `deploy/install.md`
 
 ## PR Checklist
 

@@ -11,12 +11,12 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-90%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-126%20passed-brightgreen)]()
 
-**Zero-dependency CLI that turns Copilot CLI's local SQLite into instant recall — no MCP server, no hooks, read-only, schema-checked. ~50 tokens per prompt.**
+**Zero-dependency CLI that turns your AI agent's local session history into instant recall — no MCP server, read-only, schema-checked. ~50 tokens per prompt.**
 
-**Works with:** GitHub Copilot CLI  
-**Coming soon:** Claude Code · Cursor · Codex 
+**Works with:** Claude Code · GitHub Copilot CLI  
+**Coming soon:** Cursor · Codex
 
 ---
 
@@ -31,27 +31,16 @@ Now give your agent a memory. Point it at [`deploy/install.md`](deploy/install.m
 
 ---
 
-### 🪟 Windows (WSL2) — Enable the Session Store. (IF MISSING)
+### Backend support
 
-> **On Windows 11 + WSL2** (Suggested method of using on Windows install WSL2), IF Copilot CLI doesn't create `session-store.db`   
-> You must enable it first — otherwise you'll get `error: database not found`.
+`session-recall` auto-detects which agent's data is on disk and uses it. Force a specific one with `--backend claude|copilot`.
 
-### Missing Session Store Error Workaround— Enable the Session Store. 
-Inside any Copilot CLI session, run:
+| Backend | Reads | Notes |
+|---|---|---|
+| Claude Code | `~/.claude/projects/**/*.jsonl` | Auto-ingested into a local SQLite index at `~/.claude/.session-recall.db` (incremental, ~50 ms cold). |
+| GitHub Copilot CLI | `~/.copilot/session-store.db` | Read direct from Copilot's own store. On Windows 11 + WSL2 you must enable `/experimental` → `SESSION_STORE` first (see [`deploy/install.md`](deploy/install.md)). |
 
-```
-/experimental
-```
-
-Select **SESSION_STORE** to enable it. This turns on the SQLite-based session store for cross-session history, file tracking, and search.
-
-Verify it worked:
-
-```bash
-ls ~/.copilot/session-store.db    # should exist after your next session
-```
-
-> **Note:** This is a one-time setup. Once enabled, the session store persists across all future sessions.
+Both modes expose the same CLI: `list`, `files`, `search`, `show`, `checkpoints`, `health`, `schema-check`. The Claude backend additionally has `ingest` for forced rebuilds.
 
 ---
 
@@ -147,7 +136,7 @@ Total: ~1.1K tokens, 30 seconds, agent is immediately productive.
 ## Mental Model: RAM vs Disk
 
 - **Context window = RAM.** Fast, limited, clears on restart.
-- **session-store.db = Disk.** Persistent, searchable, grows forever.
+- **Agent's session store = Disk.** Persistent, searchable, grows forever — Copilot's `session-store.db` or Claude's JSONL transcripts.
 
 auto-memory is the **page fault handler** — it pulls exact facts from disk in ~50 tokens when the agent needs them.
 
@@ -156,29 +145,44 @@ auto-memory is the **page fault handler** — it pulls exact facts from disk in 
 ## Design
 
 ```
-┌─────────────────────────────────────────────────┐
-│  copilot-instructions.md                        │
-│  "Run auto-memory FIRST on every prompt"         │
-└──────────────────┬──────────────────────────────┘
-                   │ agent reads instruction
-                   ▼
-┌─────────────────────────────────────────────────┐
-│  auto-memory CLI                                │
-│  (pure Python, zero deps, read-only)            │
-└──────────────────┬──────────────────────────────┘
-                   │ SELECT ... FROM sessions
-                   ▼
-┌─────────────────────────────────────────────────┐
-│  ~/.copilot/session-store.db                    │
-│  (SQLite + FTS5, owned by Copilot CLI binary)   │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  agent instruction file (CLAUDE.md or copilot-instructions) │
+│  "Run session-recall FIRST on every prompt"                 │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ agent reads instruction
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  session-recall CLI  (pure Python, zero deps, read-only)    │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ backends.detect()  →  copilot | claude                │  │
+│  │ backend.ensure_index()   ← incremental (Claude only)  │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────┬─────────────────────────┬─────────────┘
+                      │                         │
+        Copilot path  ▼                         ▼  Claude path
+        ┌──────────────────────┐  ┌──────────────────────────┐
+        │ ~/.copilot/          │  │ ~/.claude/projects/**.jsonl
+        │   session-store.db   │  │              │           │
+        │   (Copilot maintains)│  │              ▼           │
+        │                      │  │ ingest/run.py            │
+        │                      │  │              │           │
+        │                      │  │              ▼           │
+        │                      │  │ ~/.claude/               │
+        │                      │  │   .session-recall.db     │
+        │                      │  │   (Copilot-shaped + FTS5)│
+        └──────────┬───────────┘  └──────────┬───────────────┘
+                   │                         │
+                   └────────────┬────────────┘
+                                ▼
+                   Read-only SQLite (sqlite3 + FTS5)
 ```
 
-- **Zero dependencies** — stdlib only (sqlite3, json, argparse)
-- **Read-only** — never writes to `~/.copilot/session-store.db`
-- **WAL-safe** — exponential backoff retry on SQLITE_BUSY (50→150→450ms)
+- **Zero runtime dependencies** — stdlib only (sqlite3, json, argparse)
+- **Read-only** — Copilot's `session-store.db` is never written; Claude's JSONL transcripts are never modified
+- **WAL-safe** — exponential backoff retry on `SQLITE_BUSY` (50→150→450 ms)
 - **Schema-aware** — validates expected schema on every call, fails fast on drift
-- **Telemetry** — ring buffer of last 100 invocations for concurrency monitoring
+- **Incremental ingest** (Claude) — per-JSONL `(mtime, size)` checkpoint; back-to-back calls are near-no-ops
+- **Telemetry** — ring buffer of last 500 invocations for concurrency monitoring
 
 ## Usage
 
@@ -223,8 +227,9 @@ session-recall show <session-id> --json
 **Operational commands:**
 
 ```bash
-session-recall health          # 9-dimension health dashboard
-session-recall schema-check    # validate DB schema after Copilot CLI upgrades
+session-recall health          # 10-dimension health dashboard
+session-recall schema-check    # validate DB schema (after agent upgrades)
+session-recall ingest --full   # Claude only: drop & rebuild index from JSONL
 ```
 
 ## Health Check
@@ -232,24 +237,31 @@ session-recall schema-check    # validate DB schema after Copilot CLI upgrades
 ```
 Dim Name                   Zone     Score  Detail
 ----------------------------------------------------------------------
- 1  DB Freshness           🟢 GREEN   8.0  15.8h old
+ 1  Freshness              🟢 GREEN  10.0  0.2h old
  2  Schema Integrity       🟢 GREEN  10.0  All tables/columns OK
  3  Query Latency          🟢 GREEN  10.0  1ms
- 4  Corpus Size            🟢 GREEN  10.0  399 sessions
- 5  Summary Coverage       🟢 GREEN   7.4  92% (367/399)
+ 4  Corpus Size            🟢 GREEN  10.0  127 sessions
+ 5  Summary Coverage       🟢 GREEN   7.4  92% (117/127) (auto-derived)
  6  Repo Coverage          🟢 GREEN  10.0  8 sessions for owner/repo
  7  Concurrency            🟢 GREEN  10.0  busy=0.0%, p95=48ms
  8  E2E Probe              🟢 GREEN  10.0  list→show OK
- 9  Progressive Disclosure  ⚪ CALIBRATING  —  Collecting baseline (n=42/200)
+ 9  Progressive Disclosure ⚪ CALIBRATING  —  Collecting baseline (n=42/200)
+ 10 Index Ingest           🟢 GREEN  10.0  19 files indexed, 0.0m behind newest JSONL
 ```
+
+The 10th dimension (`Index Ingest`) is Claude-only; on Copilot it reports `N/A` and is skipped from the overall score. On Windows consoles without UTF-8, glyphs gracefully fall back to ASCII tags (`[OK]`, `[--]`, `[!!]`, `[..]`, `[NA]`).
 
 ## Agent Integration
 
-auto-memory works with **any agent that supports instruction files** — GitHub Copilot CLI, Claude Code, Cursor, Aider, Windsurf, and more. Installation wires session-recall into your agent's instruction file so it runs context recall automatically.
+auto-memory works with **any agent that supports instruction files**. Installation wires `session-recall` into your agent's instruction file so it runs context recall automatically.
 
-See [`deploy/install.md`](deploy/install.md) for setup and [`copilot-instructions-template.md`](copilot-instructions-template.md) for integration patterns.
+- **Claude Code** — append the block from [`claude-code-instructions-template.md`](claude-code-instructions-template.md) to `~/.claude/CLAUDE.md`. Optionally add a `SessionStart` hook from [`deploy/claude-code-hook.json`](deploy/claude-code-hook.json) for zero per-query latency.
+- **Copilot CLI** — append the block from [`copilot-instructions-template.md`](copilot-instructions-template.md) to `~/.copilot/copilot-instructions.md`.
+- See [`deploy/install.md`](deploy/install.md) for the full setup walkthrough.
 
-See [`UPGRADE-COPILOT-CLI.md`](UPGRADE-COPILOT-CLI.md) for schema validation after Copilot CLI upgrades.
+After agent upgrades, validate the on-disk schema:
+- Copilot CLI → [`UPGRADE-COPILOT-CLI.md`](UPGRADE-COPILOT-CLI.md)
+- Claude Code → [`UPGRADE-CLAUDE-CODE.md`](UPGRADE-CLAUDE-CODE.md)
 
 ## What This Isn't
 
@@ -260,10 +272,13 @@ See [`UPGRADE-COPILOT-CLI.md`](UPGRADE-COPILOT-CLI.md) for schema validation aft
 ## FAQ
 
 **Is it safe? Does it modify my session data?**
-No. auto-memory is strictly read-only. It never writes to `~/.copilot/session-store.db`.
+No. auto-memory is strictly read-only against the upstream stores. Copilot's `~/.copilot/session-store.db` is opened with `mode=ro` and never written. Claude's `~/.claude/projects/**/*.jsonl` files are only read — the SQLite *index* derived from them lives in a separate file (`~/.claude/.session-recall.db`).
 
-**What happens when Copilot CLI updates its schema?**
-Run `session-recall schema-check` to validate. The tool fails fast on schema drift rather than returning bad data. See [UPGRADE-COPILOT-CLI.md](UPGRADE-COPILOT-CLI.md).
+**What happens when the upstream agent updates its schema?**
+Run `session-recall schema-check` to validate. The tool fails fast on schema drift rather than returning bad data. See [UPGRADE-COPILOT-CLI.md](UPGRADE-COPILOT-CLI.md) and [UPGRADE-CLAUDE-CODE.md](UPGRADE-CLAUDE-CODE.md).
+
+**Can I use both backends at the same time?**
+Yes. With both stores present, `session-recall` defaults to Claude Code; pass `--backend copilot` to query Copilot specifically. Both wirings can coexist in their respective instruction files.
 
 ## Roadmap
 
@@ -279,7 +294,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines. Issues, PRs, an
 
 ## Disclaimer
 
-This is an independent open-source project. It is **not** affiliated with, endorsed by, or supported by Microsoft, GitHub, or any other company. There is no official support — use at your own risk. Contributions and issues are welcome on GitHub.
+This is an independent open-source project. It is **not** affiliated with, endorsed by, or supported by Microsoft, GitHub, Anthropic, or any other company. There is no official support — use at your own risk. Contributions and issues are welcome on GitHub.
 
 ## License
 

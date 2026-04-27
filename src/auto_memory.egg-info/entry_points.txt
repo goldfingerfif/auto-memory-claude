@@ -1,0 +1,2 @@
+[console_scripts]
+session-recall = session_recall.__main__:main

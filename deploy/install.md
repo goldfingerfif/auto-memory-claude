@@ -1,14 +1,16 @@
 # Deploy auto-memory
 
-auto-memory is a zero-dependency Python CLI that queries `~/.copilot/session-store.db` for progressive session recall. Install it once, wire it into Copilot CLI instructions, and every future agent session starts with full context.
+auto-memory is a zero-dependency Python CLI that gives any AI coding agent ~50-token recall of recent sessions, files, and checkpoints. It supports two backends today:
+
+- **Claude Code** — reads `~/.claude/projects/**/*.jsonl` (auto-ingested into a local SQLite index)
+- **GitHub Copilot CLI** — reads `~/.copilot/session-store.db` (Copilot maintains the DB)
+
+You can use one, the other, or both. `session-recall` auto-detects which backend is present, or you can force one with `--backend claude|copilot`.
 
 ## Prerequisites
 
-Verify these before proceeding. Stop and report if any fail.
-
 ```bash
 python3 --version   # must be 3.10+
-copilot --version   # Copilot CLI must be installed
 ```
 
 One of these package managers must be available (checked in priority order):
@@ -16,55 +18,19 @@ One of these package managers must be available (checked in priority order):
 ```bash
 uv --version     # preferred
 pipx --version   # fallback 1
-pip --version     # fallback 2
+pip --version    # fallback 2
 ```
 
-### Windows (WSL2) — Enable the Session Store
-
-On Windows 11 + WSL2, Copilot CLI does not create `session-store.db` by default. You must enable the experimental session store first.
-
-1. Start a Copilot CLI session:
+Plus, depending on which agent you're wiring up:
 
 ```bash
-copilot
+claude --version    # for Claude Code integration
+copilot --version   # for Copilot CLI integration
 ```
 
-2. Inside the session, run the slash command:
+## Install the CLI
 
-```
-/experimental
-```
-
-3. Select **SESSION_STORE** to enable it. This turns on:
-   - SQLite-based session store for cross-session history
-   - File tracking and full-text search
-
-4. Exit and verify:
-
-```bash
-ls ~/.copilot/session-store.db
-```
-
-The file should now exist. If not, start and complete one full Copilot CLI session, then check again.
-
-> **This is a one-time setup.** Once enabled, the session store persists across all future sessions.
-
-## Install
-
-### Step 1 — Clone or navigate to the repo
-
-If the repo is not already local, clone it:
-
-```bash
-git clone <auto-memory-repo-url>
-cd auto-memory
-```
-
-If already local, `cd` into the repo root.
-
-### Step 2 — Install the CLI
-
-Run the first command that succeeds. Stop after one succeeds.
+The CLI is the same regardless of which backend you choose. Run the first command that succeeds:
 
 ```bash
 # Preferred — uv
@@ -77,92 +43,101 @@ pipx install --force -e .
 python3 -m pip install --user --force-reinstall -e .
 ```
 
-### Step 3 — Verify install
-
-Run both commands. Both must succeed.
+Verify:
 
 ```bash
 which session-recall
-session-recall schema-check
+session-recall --help
 ```
 
-If `which session-recall` returns nothing, see Troubleshooting below.
+If `which session-recall` returns nothing, see Troubleshooting.
 
-## Agent Integration — Add to Copilot Instructions
+## Pick your agent
 
-This step wires auto-memory into every future agent session by appending instructions to `~/.copilot/copilot-instructions.md`.
+### A) Claude Code
 
-### Step 1 — Ensure the file exists
+Claude Code stores transcripts as JSONL files under `~/.claude/projects/`. `session-recall` ingests these into a local SQLite index automatically on every CLI call.
+
+**Step 1 — Verify the projects dir exists:**
 
 ```bash
-mkdir -p ~/.copilot
-touch ~/.copilot/copilot-instructions.md
+ls ~/.claude/projects/
 ```
 
-### Step 2 — Check for duplicates
+If empty or missing, run a Claude Code session first (`claude` from any project directory) — `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` will be created.
 
-Search `~/.copilot/copilot-instructions.md` for the string `Progressive Session Recall`. If it already exists, **skip Step 3 entirely** — the block is already present.
-
-### Step 3 — Append the instruction block
-
-Append this exact block to the end of `~/.copilot/copilot-instructions.md`:
-
-````markdown
-## Progressive Session Recall — RUN FIRST ON EVERY PROMPT
-
-**Run `session-recall` FIRST on every prompt before doing anything else.** It costs ~50 tokens and prevents expensive blind searches.
+**Step 2 — Smoke test:**
 
 ```bash
-session-recall files --json --limit 10  # recently touched files
-session-recall files --days 7 --json    # files touched in last 7 days
-session-recall list --json --limit 5    # recent sessions
-session-recall list --days 2 --json     # sessions from last 2 days
-session-recall search '<term>' --json   # full-text search
-session-recall search '<term>' --days 5 # search last 5 days only
-session-recall checkpoints --days 3     # checkpoints from last 3 days
-session-recall show <id> --json         # drill into one session
-session-recall health --json            # 8-dimension health check
-session-recall schema-check             # validate DB schema (run after Copilot CLI upgrade)
+session-recall --backend claude ingest --verbose
+session-recall --backend claude list --json --limit 3
+session-recall --backend claude health --json
 ```
 
-**`--days N` works on all 4 query commands** (`list`, `files`, `checkpoints`, `search`) — filters to sessions/files/checkpoints from the last N days.
+The first ingest may take a few seconds; subsequent calls re-touch only changed JSONL files.
 
-Only use filesystem tools (grep, glob, find) if session-recall returns nothing useful.
-If `session-recall` errors, continue silently — it's a convenience, not a blocker.
-````
+**Step 3 — Wire into Claude Code's instruction file:**
+
+Append the block from [`claude-code-instructions-template.md`](../claude-code-instructions-template.md) to your `~/.claude/CLAUDE.md` (global) or a project-level `CLAUDE.md`. From now on every Claude Code session begins with `session-recall files`/`list`/`search` calls before doing anything else.
+
+**Step 4 (optional) — SessionStart hook:**
+
+For zero per-query latency, install the snippet at [`deploy/claude-code-hook.json`](claude-code-hook.json) into your `~/.claude/settings.json` `hooks` object. With the hook, ingest runs once at session boot.
+
+### B) GitHub Copilot CLI
+
+Copilot CLI maintains its own SQLite store at `~/.copilot/session-store.db`. `session-recall` reads it directly read-only.
+
+**Step 1 — Windows (WSL2) only: enable the session store**
+
+On Windows 11 + WSL2, Copilot CLI does not create `session-store.db` by default:
+
+1. Start Copilot: `copilot`
+2. Inside the session: `/experimental`
+3. Select **SESSION_STORE**
+4. Verify: `ls ~/.copilot/session-store.db`
+
+This is a one-time setup. macOS/Linux users skip this step.
+
+**Step 2 — Smoke test:**
+
+```bash
+session-recall --backend copilot list --json --limit 3
+session-recall --backend copilot health --json
+session-recall --backend copilot schema-check
+```
+
+**Step 3 — Wire into Copilot's instruction file:**
+
+Append the block from [`copilot-instructions-template.md`](../copilot-instructions-template.md) to `~/.copilot/copilot-instructions.md`.
+
+### C) Both
+
+`session-recall` auto-detects: if both stores are present, Claude Code wins by default (newer-first; pass `--backend copilot` to override). Wire both instruction blocks into their respective files and you're done.
 
 ## Verify Installation
 
-Run all three checks. All must pass.
+Run all three checks for whichever backend(s) you wired up:
 
 ```bash
-session-recall health          # all dimensions should show GREEN
-session-recall list --json     # should return at least one session
-session-recall schema-check    # must exit 0
+session-recall health           # all dimensions GREEN (or N/A on Copilot for Index Ingest)
+session-recall list --json      # at least one session
+session-recall schema-check     # exit 0
 ```
-
-If `session-recall list --json` returns zero sessions, that is normal on a fresh install — Copilot CLI needs at least one completed session first.
 
 ## Troubleshooting
 
-### `error: database not found` (Windows/WSL2)
+### `error: database not found` (Copilot)
 
-Copilot CLI has not created the session store database yet. On WSL2, this requires enabling an experimental feature:
+Copilot CLI hasn't created the session store yet. On WSL2, you must enable the experimental SESSION_STORE feature first (see B/Step 1).
 
-1. Run `copilot` to start a session
-2. Run `/experimental` inside the session
-3. Enable **SESSION_STORE**
-4. Complete at least one session, then verify:
+### `error: database not found` (Claude)
 
-```bash
-ls ~/.copilot/session-store.db
-```
-
-If the file still doesn't exist after enabling, try starting a new Copilot CLI session — the database is created on first use after enabling.
+`~/.claude/projects/` is empty. Run any Claude Code session first; the JSONL transcript is what `session-recall` ingests.
 
 ### `command not found: session-recall`
 
-PATH issue. Check that `~/.local/bin` is on PATH:
+PATH issue. Check that the install dir is on PATH:
 
 ```bash
 echo "$PATH" | tr ':' '\n' | grep -q '.local/bin' && echo "OK" || echo "MISSING"
@@ -175,22 +150,11 @@ export PATH="$HOME/.local/bin:$PATH"
 which session-recall
 ```
 
-If still not found, re-run install with `uv tool install --force --editable .` from the repo root.
-
 ### `schema-check` fails (exit code 2)
 
-The Copilot CLI DB schema has drifted from what session-recall expects. This usually happens after a Copilot CLI upgrade. See [UPGRADE-COPILOT-CLI.md](../UPGRADE-COPILOT-CLI.md) for the full procedure.
+Copilot: see [UPGRADE-COPILOT-CLI.md](../UPGRADE-COPILOT-CLI.md).
+Claude: see [UPGRADE-CLAUDE-CODE.md](../UPGRADE-CLAUDE-CODE.md). Most often a forced rebuild fixes it: `session-recall ingest --full`.
 
 ### No sessions found
 
-Normal on first use. Copilot CLI needs at least one completed session before session-recall has anything to query. Run a Copilot CLI session, then retry.
-
-## Upgrading Copilot CLI
-
-After any Copilot CLI upgrade, run:
-
-```bash
-session-recall schema-check
-```
-
-If it exits 0, no action needed. If it fails, follow the full upgrade procedure in [UPGRADE-COPILOT-CLI.md](../UPGRADE-COPILOT-CLI.md).
+Normal on first use. Run a session in your agent, then retry.
