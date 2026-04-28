@@ -6,7 +6,7 @@ Thanks for your interest in contributing! Whether it's a bug fix, docs improveme
 
 ```bash
 git clone https://github.com/goldfingerfif/auto-memory-claude.git
-cd auto-memory
+cd auto-memory-claude
 pip install -e ".[dev]"
 pytest src/session_recall/tests/ -q
 ```

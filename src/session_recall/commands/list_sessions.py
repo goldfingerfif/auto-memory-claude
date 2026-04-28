@@ -56,7 +56,7 @@ def run(args, backend=None) -> int:
     recent_files = _recent_files(conn, repo, limit=10)
     data = {"repo": repo or "all", "count": len(sessions),
             "sessions": sessions, "recent_files": recent_files}
-    output(data, json_mode=args.json)
+    output(data, json_mode=args.json, brief=getattr(args, 'brief', False))
     conn.close()
     return 0
 

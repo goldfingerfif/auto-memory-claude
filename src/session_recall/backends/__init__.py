@@ -33,6 +33,10 @@ class Backend:
     expected_schema: dict
     ensure_index: Callable[[], None] = field(default=lambda: None)
     freshness_signal: Optional[Callable[[], Optional[float]]] = None
+    # Health dim thresholds the backend wants to override from defaults.
+    # corpus_thresholds = (green, amber) — number of sessions for dim_corpus.
+    # Defaults are Copilot-calibrated (many short sessions); Claude tunes lower.
+    corpus_thresholds: tuple[int, int] = (50, 10)
 
     def __post_init__(self):
         if self.freshness_signal is None:

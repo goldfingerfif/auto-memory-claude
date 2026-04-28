@@ -12,10 +12,10 @@ This is the maintainer's checklist for this fork — what's done, what's queued.
 - [x] 10-dimension health dashboard (Index Ingest is Claude-only)
 - [x] Telemetry ring buffer (last 500 invocations) for concurrency monitoring
 - [x] Windows console ASCII glyph fallback (`[OK]`, `[--]`, `[!!]`) when UTF-8 unavailable
-- [x] Test suite — 138 collected tests passing
+- [x] Test suite — 150 collected tests passing (138 + 12 new `--brief` tests)
 - [x] README accuracy pass — token counts measured under Claude Code (not just Copilot), text vs JSON costs documented honestly
 - [x] "Tested on Claude Code" methodology section in README — re-runnable measurement command
-- [x] Test badge updated to 138 (was 126)
+- [x] Test badge updated to 150 (was 126)
 - [x] Line-count subtitle updated to ~2,300 (was ~1,900)
 - [x] Tier 1/2/3 documentation updated with measured costs (text ~120, JSON Tier-1 ~1,400, Tier-2 ~900, Tier-3 ~1,800)
 - [x] ROI section recalibrated — honest 5–10× (JSON) / 40–80× (text) improvement, not the original 200× headline
@@ -26,18 +26,23 @@ This is the maintainer's checklist for this fork — what's done, what's queued.
 - [x] `.gitignore` already covers build artifacts (`*.egg-info/`), DBs, secrets, agent files (`.claude/`, `CLAUDE.md`)
 - [x] Project-local Claude Code hooks for the fork (ruff lint on edit, pytest on edit, pyproject `dependencies` guard) — see `.claude/settings.json` (gitignored, fork-only)
 - [x] Dev tooling installed for the fork (pyright-lsp, code-review, commit-commands, code-simplifier, claude-md-management, github MCP)
-
-## Queued (next)
-
 - [x] Fork URLs updated from placeholder to `goldfingerfif/auto-memory-claude`
 - [x] Distribution path chosen — `pip install git+https://github.com/goldfingerfif/auto-memory-claude.git` (no PyPI publishing for now; revisit if there's real demand)
 - [x] Misleading PyPI badge removed from README (it linked to upstream's PyPI namespace, not the fork)
-- [ ] `--brief` JSON output flag — drops `session_summary` to honor the original ~50-token claim with structured output
+- [x] `--brief` JSON output flag — drops `session_summary`/`summary` for ~30–50% smaller structured output (`files --json --brief`: ~700 tokens vs ~1,400; `search --json --brief`: ~600 vs ~900)
+- [x] `CHANGELOG.md` added (Keep-a-Changelog format) with 0.1.0 (Copilot) and 0.2.0 (fork) entries
+- [x] Version bump 0.1.0 → 0.2.0 in `pyproject.toml`
+- [x] Ruff lint clean — 0 warnings (was 31): F841×3, F401×4, E401×1 fixed; E701/E702 ignored via `[tool.ruff.lint]` config to honor the project's intentional compact one-line style in `types.py` / `util/telemetry.py`
+- [x] Repo hygiene — `__pycache__/` and `auto_memory.egg-info/` untracked (were committed before gitignore covered them); `.gitignore` no longer blocks `CHANGELOG.md`
+- [x] src/ tree synced from working directory to canonical clone (the previous "fork update" commit only carried doc changes; the actual Claude backend, ingest module, tests, and util refinements landed in this 0.2.0 release)
+
+## Queued (next)
+
 - [ ] Cursor backend
 - [ ] OpenAI Codex backend
 - [ ] Session diffing (what changed between sessions)
 - [ ] Export sessions to markdown
-- [ ] Optional MCP server wrapper for IDE integrations that don't support instruction files
+- [ ] Optional MCP server wrapper for IDE integrations that don't support instruction files (sketched as a separate fork in the implementation plan — `auto-memory-claude-mcpb`)
 
 ## Out of scope (deliberately)
 

@@ -68,7 +68,8 @@ def run(args, backend=None) -> int:
     if fts_query is None:
         data = {"query": raw_query, "repo": repo or "all", "count": 0, "results": [],
                 "warning": "Empty query — nothing to search"}
-        output(data, json_mode=getattr(args, 'json', False))
+        output(data, json_mode=getattr(args, 'json', False),
+               brief=getattr(args, 'brief', False))
         conn.close()
         return 0
 
@@ -100,6 +101,7 @@ def run(args, backend=None) -> int:
                          "excerpt": f"{r['file_path']} ({r['tool_name']})"})
     results = results[:limit]
     data = {"query": raw_query, "repo": repo or "all", "count": len(results), "results": results}
-    output(data, json_mode=getattr(args, 'json', False))
+    output(data, json_mode=getattr(args, 'json', False),
+           brief=getattr(args, 'brief', False))
     conn.close()
     return 0

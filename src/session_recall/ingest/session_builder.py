@@ -27,21 +27,29 @@ from .jsonl_reader import extract_text, extract_tool_uses
 
 FILE_TOOLS = {"Read", "Write", "Edit", "NotebookEdit"}
 
-# Strip Claude Code command preambles (slash commands + caveats) when deriving
-# a summary from the first user message — otherwise every /init / /plan session
-# gets the same opaque "<command-message>init</command-message>" snippet.
-_PREAMBLE_TAGS_RE = re.compile(
-    r"<(?:command-message|command-name|command-args|local-command-stdout|"
+# Claude Code wraps slash-command invocations in XML-ish tags. The user's
+# actual intent lives inside <command-args>; the rest is metadata. We unwrap
+# the args content so summary derivation captures real prompts (e.g. "/plan
+# read CLAUDE.md and draft …" → "read CLAUDE.md and draft …"), and drop the
+# other tag pairs entirely so they don't pollute the snippet.
+_COMMAND_ARGS_RE = re.compile(
+    r"<command-args\b[^>]*>([\s\S]*?)</command-args>", re.IGNORECASE,
+)
+_DROP_TAGS_RE = re.compile(
+    r"<(?:command-message|command-name|local-command-stdout|"
     r"local-command-caveat|system-reminder|user-prompt-submit-hook)\b[^>]*>"
-    r"[\s\S]*?</(?:command-message|command-name|command-args|local-command-stdout|"
+    r"[\s\S]*?</(?:command-message|command-name|local-command-stdout|"
     r"local-command-caveat|system-reminder|user-prompt-submit-hook)>",
     re.IGNORECASE,
 )
 
 
 def _derive_summary(text: str) -> str:
-    """Strip Claude Code preambles, return the first ~200 chars of real content."""
-    cleaned = _PREAMBLE_TAGS_RE.sub("", text)
+    """Strip Claude Code preambles, unwrap <command-args>, return first ~200 chars."""
+    # 1. Unwrap <command-args>X</command-args> → X (keeps the user's intent)
+    cleaned = _COMMAND_ARGS_RE.sub(lambda m: m.group(1), text)
+    # 2. Drop the rest of the tag pairs (metadata only)
+    cleaned = _DROP_TAGS_RE.sub("", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned[:200]
 
@@ -174,4 +182,14 @@ def build(records: Iterable[tuple[int, dict]], existing: SessionRows | None = No
     # incremental pass can append to it.
     for t in rows.turns[:-1]:
         t["_open"] = False
+
+    # Last-resort summary: if every user message was preamble-only, lift text
+    # from the first non-empty assistant turn so the session still has a
+    # human-readable label (and dim_summary_coverage doesn't dock the score).
+    if not rows.summary:
+        for t in rows.turns:
+            snippet = _derive_summary(t.get("assistant_response") or "")
+            if snippet:
+                rows.summary = f"~{snippet}"
+                break
     return rows

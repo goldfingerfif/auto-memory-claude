@@ -70,6 +70,7 @@ def run(args, backend=None) -> int:
         "turns_count": len(turns_rows), "turns": turns,
         "files": files, "refs": refs, "checkpoints": cps,
     }
-    output(result, json_mode=getattr(args, 'json', False))
+    output(result, json_mode=getattr(args, 'json', False),
+           brief=getattr(args, 'brief', False))
     conn.close()
     return 0

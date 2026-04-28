@@ -23,6 +23,16 @@ def fmt_json(data: dict | list) -> str:
     return json.dumps(data, indent=2, default=str)
 
 
+def _scrub_summaries(obj):
+    """Recursively drop 'summary' and 'session_summary' keys (--brief mode)."""
+    if isinstance(obj, dict):
+        return {k: _scrub_summaries(v) for k, v in obj.items()
+                if k not in ('summary', 'session_summary')}
+    if isinstance(obj, list):
+        return [_scrub_summaries(item) for item in obj]
+    return obj
+
+
 def fmt_human_sessions(sessions: list[dict]) -> str:
     """Format session list as human-readable table."""
     if not sessions:
@@ -39,8 +49,10 @@ def fmt_human_sessions(sessions: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def output(data, json_mode: bool = False) -> None:
+def output(data, json_mode: bool = False, brief: bool = False) -> None:
     """Print data in requested format to stdout."""
+    if brief and json_mode:
+        data = _scrub_summaries(data)
     if json_mode:
         print(fmt_json(data))
     elif isinstance(data, list):

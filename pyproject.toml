@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "auto-memory"
-version = "0.1.0"
-description = "Your AI coding agent never forgets — progressive session recall for GitHub Copilot CLI"
+version = "0.2.0"
+description = "Your AI coding agent never forgets — progressive session recall for Claude Code and GitHub Copilot CLI"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "Desi Villanueva (original creator)"}]
 maintainers = [{name = "Fork maintainer (goldfingerfif)"}]
 readme = "README.md"
-keywords = ["session", "recall", "context", "memory", "cli", "copilot"]
+keywords = ["session", "recall", "context", "memory", "cli", "claude", "copilot", "anthropic"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
@@ -34,3 +34,9 @@ dev = ["pytest>=8", "ruff>=0.6"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff.lint]
+# E701/E702 are intentionally allowed: the project's TypedDict definitions in
+# src/session_recall/types.py and one-line conditional assigns in util/telemetry.py
+# use compact syntax to honor the "≤80 lines/file" guidance from CONTRIBUTING.md.
+extend-ignore = ["E701", "E702"]

@@ -11,18 +11,21 @@ This file contains the raw instruction block for manual reference. Append it to 
 **Run `session-recall` FIRST on every prompt before doing anything else.** It costs ~50–150 tokens for the cheap (plain-text) calls and prevents expensive blind searches.
 
 ```bash
-session-recall files --limit 10         # recently touched files (~120 tokens)
-session-recall files --days 7           # files touched in last 7 days
-session-recall list --limit 5           # recent sessions (~110 tokens)
-session-recall list --days 2            # sessions from last 2 days
-session-recall search '<term>'          # full-text search (~900 tokens with --json)
-session-recall search '<term>' --days 5 # search last 5 days only
-session-recall checkpoints --days 3     # checkpoints from last 3 days
-session-recall show <id> --json         # drill into one session (~1,800 tokens)
-session-recall health --json            # 10-dimension health check
-session-recall ingest                   # refresh index from JSONL transcripts
-session-recall schema-check             # validate index schema
-# Add --json to any cheap query when you need to parse the result programmatically (~1,400+ tokens for files/list)
+session-recall files --limit 10                # recently touched files (~120 tokens, text)
+session-recall files --days 7                  # files touched in last 7 days
+session-recall list --limit 5                  # recent sessions (~110 tokens, text)
+session-recall list --days 2                   # sessions from last 2 days
+session-recall search '<term>'                 # full-text search (text)
+session-recall search '<term>' --days 5        # search last 5 days only
+session-recall checkpoints --days 3            # checkpoints from last 3 days
+session-recall show <id> --json                # drill into one session (~1,800 tokens)
+session-recall health --json                   # 10-dimension health check
+session-recall ingest                          # refresh index from JSONL transcripts
+session-recall schema-check                    # validate index schema
+# When you need structured output for parsing, add --json --brief together for cheap structured recall:
+#   session-recall files --json --brief --limit 10   # ~700 tokens (was ~1,400 without --brief)
+#   session-recall search '<term>' --json --brief    # ~600 tokens (was ~900 without --brief)
+# Plain text remains the absolute cheapest path; --brief is the cheap structured path.
 ```
 
 **`--days N` works on all 4 query commands** (`list`, `files`, `checkpoints`, `search`) — filters to sessions/files/checkpoints from the last N days.

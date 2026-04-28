@@ -39,6 +39,7 @@ def run(args, backend=None) -> int:
         "session_id": r["session_id"][:8], "session_summary": r["session_summary"],
     } for r in rows]
     output({"repo": repo or "all", "count": len(checkpoints), "checkpoints": checkpoints},
-           json_mode=getattr(args, 'json', False))
+           json_mode=getattr(args, 'json', False),
+           brief=getattr(args, 'brief', False))
     conn.close()
     return 0

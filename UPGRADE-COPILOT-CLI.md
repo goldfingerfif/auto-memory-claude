@@ -36,7 +36,7 @@ copilot --version
 ### 5. Schema check (MUST exit 0)
 
 ```bash
-cd auto-memory && session-recall schema-check
+session-recall schema-check
 ```
 
 If this fails with exit code 2:

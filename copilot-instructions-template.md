@@ -19,7 +19,7 @@ session-recall search '<term>'          # full-text search
 session-recall search '<term>' --days 5 # search last 5 days only
 session-recall checkpoints --days 3     # checkpoints from last 3 days
 session-recall show <id> --json         # drill into one session
-session-recall health --json            # 8-dimension health check
+session-recall health --json            # 10-dimension health check (Index Ingest is N/A on Copilot)
 session-recall schema-check             # validate DB schema (run after Copilot CLI upgrade)
 # Add --json to any cheap query when you need to parse the result programmatically (~1,400+ tokens for files/list)
 ```

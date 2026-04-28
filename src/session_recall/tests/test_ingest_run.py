@@ -172,3 +172,59 @@ def test_missing_projects_dir_safe(tmp_path):
     summary = run_incremental(db_path=str(db),
                               projects_dir=str(tmp_path / "nope"))
     assert summary["files_seen"] == 0
+
+
+def _write_jsonl(path: Path, records: list[dict]) -> None:
+    import json
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as fh:
+        for r in records:
+            fh.write(json.dumps(r) + "\n")
+
+
+def test_summary_unwraps_command_args(tmp_path):
+    """`<command-args>X</command-args>` → X (the user's actual prompt)."""
+    projects = tmp_path / "projects"
+    p = projects / "C--proj" / "abcd1234-aaaa-bbbb-cccc-deadbeef0001.jsonl"
+    _write_jsonl(p, [
+        {"type": "user", "uuid": "u1", "sessionId": "abcd1234-aaaa-bbbb-cccc-deadbeef0001",
+         "cwd": "/proj", "timestamp": "2026-04-21T00:00:00Z",
+         "message": {"role": "user",
+                     "content": "<command-name>/plan</command-name>\n<command-message>plan</command-message>\n<command-args>refactor the auth module</command-args>"}},
+        {"type": "assistant", "uuid": "a1", "sessionId": "abcd1234-aaaa-bbbb-cccc-deadbeef0001",
+         "timestamp": "2026-04-21T00:00:01Z",
+         "message": {"role": "assistant",
+                     "content": [{"type": "text", "text": "Working on it."}]}},
+    ])
+    db = tmp_path / "index.db"
+    run_incremental(db_path=str(db), projects_dir=str(projects))
+    conn = sqlite3.connect(str(db))
+    summary = conn.execute("SELECT summary FROM sessions").fetchone()[0]
+    conn.close()
+    assert summary
+    assert "refactor the auth module" in summary
+    assert "command-args" not in summary  # tags themselves should be gone
+
+
+def test_summary_falls_back_to_assistant_when_only_preamble(tmp_path):
+    """Every user message is preamble-only → use first assistant text."""
+    projects = tmp_path / "projects"
+    p = projects / "C--proj" / "abcd1234-aaaa-bbbb-cccc-deadbeef0002.jsonl"
+    _write_jsonl(p, [
+        {"type": "user", "uuid": "u1", "sessionId": "abcd1234-aaaa-bbbb-cccc-deadbeef0002",
+         "cwd": "/proj", "timestamp": "2026-04-21T00:00:00Z",
+         "message": {"role": "user",
+                     "content": "<command-message>/exit</command-message><command-args></command-args>"}},
+        {"type": "assistant", "uuid": "a1", "sessionId": "abcd1234-aaaa-bbbb-cccc-deadbeef0002",
+         "timestamp": "2026-04-21T00:00:01Z",
+         "message": {"role": "assistant",
+                     "content": [{"type": "text",
+                                  "text": "Closing the session as requested."}]}},
+    ])
+    db = tmp_path / "index.db"
+    run_incremental(db_path=str(db), projects_dir=str(projects))
+    conn = sqlite3.connect(str(db))
+    summary = conn.execute("SELECT summary FROM sessions").fetchone()[0]
+    conn.close()
+    assert summary
+    assert "Closing the session" in summary

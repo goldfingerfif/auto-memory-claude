@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-138%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-150%20passed-brightgreen)]()
 
 **Zero-dependency CLI that turns your AI agent's local session history into instant recall — no MCP server, read-only, schema-checked. ~50–150 tokens (plain text) / ~1,400 (JSON) per prompt — see Usage.**
 
@@ -207,19 +207,21 @@ No special syntax. The agent reads your session history and gets oriented in sec
 
 Progressive disclosure — most prompts never get past Tier 1.
 
-**Tier 1 — Cheap scan (~50–150 tokens plain text / ~1,400 JSON).** Usually enough. Use plain text for the lowest token cost; reach for `--json` when an agent will parse the result programmatically.
+**Tier 1 — Cheap scan (~50–150 tokens plain text / ~700–1,400 JSON).** Usually enough. Use plain text for the lowest token cost; reach for `--json` when an agent will parse the result programmatically. Add `--brief` to drop the verbose `session_summary` field from JSON output for ~50% savings.
 
 ```bash
-session-recall files --limit 10           # ~120 tokens
-session-recall list --limit 5             # ~110 tokens
-session-recall files --json --limit 10    # ~1,400 tokens (structured)
-session-recall list --json --limit 5      # ~1,600 tokens (structured)
+session-recall files --limit 10                   # ~120 tokens (plain text)
+session-recall list --limit 5                     # ~110 tokens (plain text)
+session-recall files --json --brief --limit 10    # ~700 tokens (structured, lean)
+session-recall files --json --limit 10            # ~1,400 tokens (structured, with summary)
+session-recall list --json --limit 5              # ~1,600 tokens (structured, with summary)
 ```
 
-**Tier 2 — Focused recall (~900 tokens).** When Tier 1 isn't enough.
+**Tier 2 — Focused recall (~600–900 tokens).** When Tier 1 isn't enough. `--brief` saves ~30% here too.
 
 ```bash
-session-recall search "specific term" --json
+session-recall search "specific term" --json --brief    # ~600 tokens
+session-recall search "specific term" --json            # ~900 tokens
 ```
 
 **Tier 3 — Full session detail (~1,800 tokens).** Only when investigating something specific.
@@ -238,14 +240,15 @@ session-recall ingest --full   # Claude only: drop & rebuild index from JSONL
 
 ### Tested on Claude Code (April 2026)
 
-Numbers above were measured on a local Claude Code index of 21 sessions. The dominant per-call cost is the `session_summary` field — the first user prompt of each session, included in every `--json` row. Claude Code prompts skew longer than Copilot CLI prompts, so a Claude index with 100+ sessions will see Tier 1 `--json` output around **1.4K–2K tokens** vs **~50–150 tokens in plain text**. Methodology: chars in stdout ÷ ~3.3 chars/token for JSON, ÷ ~4.0 for plain text. Re-measure on your own index with:
+Numbers above were measured on a local Claude Code index of 21 sessions. The dominant per-call cost is the `session_summary` field — the first user prompt of each session, included in every `--json` row. Claude Code prompts skew longer than Copilot CLI prompts, so a Claude index with 100+ sessions will see Tier 1 `--json` output around **1.4K–2K tokens** vs **~50–150 tokens in plain text**. The `--brief` flag drops `session_summary` and lands somewhere in between (~600–1,400 tokens depending on the command). Methodology: chars in stdout ÷ ~3.3 chars/token for JSON, ÷ ~4.0 for plain text. Re-measure on your own index with:
 
 ```bash
 session-recall files --json --limit 10 | py -c "import sys; d=sys.stdin.read(); print(f'{len(d)/3.3:.0f} tokens')"
+session-recall files --json --brief --limit 10 | py -c "import sys; d=sys.stdin.read(); print(f'{len(d)/3.3:.0f} tokens')"
 session-recall list --limit 5 | py -c "import sys; d=sys.stdin.read(); print(f'{len(d)/4.0:.0f} tokens')"
 ```
 
-Rule of thumb: have the agent use plain-text recall when it will read the result directly, and `--json` only when something downstream parses it.
+Rule of thumb: have the agent use plain-text recall when it will read the result directly, `--json --brief` when something downstream parses it but doesn't need the summary, and full `--json` only when summaries matter.
 
 ## Health Check
 
