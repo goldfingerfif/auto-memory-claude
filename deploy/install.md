@@ -1,6 +1,6 @@
 # Deploy auto-memory
 
-auto-memory is a zero-dependency Python CLI that gives any AI coding agent ~50-token recall of recent sessions, files, and checkpoints. It supports two backends today:
+auto-memory is a zero-dependency Python CLI that gives any AI coding agent low-token recall (~50–150 tokens plain text, ~1,400 with `--json`) of recent sessions, files, and checkpoints. It supports two backends today:
 
 - **Claude Code** — reads `~/.claude/projects/**/*.jsonl` (auto-ingested into a local SQLite index)
 - **GitHub Copilot CLI** — reads `~/.copilot/session-store.db` (Copilot maintains the DB)

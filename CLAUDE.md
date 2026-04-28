@@ -4,7 +4,7 @@ This file provides persistent guidance to Claude Code (claude.ai/code) when work
 
 ## Project
 
-`auto-memory` (CLI binary: `session-recall`) is a zero-dependency Python CLI that gives any AI coding agent instant, low-token (~50 tokens for Tier 1) progressive recall of recent sessions, files, checkpoints, and summaries.
+`auto-memory` (CLI binary: `session-recall`) is a zero-dependency Python CLI that gives any AI coding agent instant, low-token progressive recall of recent sessions, files, checkpoints, and summaries (~50–150 tokens for Tier 1 plain text, ~1,400 with `--json`).
 
 It functions as a **page fault handler** for the agent's context window:
 - Context window = volatile RAM
