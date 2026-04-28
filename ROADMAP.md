@@ -30,6 +30,8 @@ This is the maintainer's checklist for this fork — what's done, what's queued.
 ## Queued (next)
 
 - [x] Fork URLs updated from placeholder to `goldfingerfif/auto-memory-claude`
+
+## Not part of this fork 
 - [ ] PyPI package publishing (`auto-memory` already named in `pyproject.toml`; needs a release workflow)
 - [ ] `--brief` JSON output flag — drops `session_summary` to honor the original ~50-token claim with structured output
 - [ ] Cursor backend
