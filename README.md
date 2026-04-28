@@ -6,7 +6,6 @@
 
 > Originally created by [Desi Villanueva](https://github.com/dezgit2025) · This fork maintained at [goldfingerfif/auto-memory-claude](https://github.com/goldfingerfif/auto-memory-claude)
 
-[![PyPI](https://img.shields.io/pypi/v/auto-memory)](https://pypi.org/project/auto-memory/)
 [![CI](https://github.com/goldfingerfif/auto-memory-claude/actions/workflows/test.yml/badge.svg)](https://github.com/goldfingerfif/auto-memory-claude/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org)
@@ -23,9 +22,11 @@
 ### Quickstart
 
 ```bash
-pip install auto-memory        # or: git clone + ./install.sh
+pip install git+https://github.com/goldfingerfif/auto-memory-claude.git
 session-recall health          # verify it works
 ```
+
+Prefer cloning? See [`deploy/install.md`](deploy/install.md) for the full walk-through (uv / pipx / pip and per-agent wiring).
 
 Now give your agent a memory. Point it at [`deploy/install.md`](deploy/install.md) and let it cook. 🍳
 

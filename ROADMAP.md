@@ -30,7 +30,8 @@ This is the maintainer's checklist for this fork — what's done, what's queued.
 ## Queued (next)
 
 - [x] Fork URLs updated from placeholder to `goldfingerfif/auto-memory-claude`
-- [ ] PyPI package publishing (`auto-memory` already named in `pyproject.toml`; needs a release workflow)
+- [x] Distribution path chosen — `pip install git+https://github.com/goldfingerfif/auto-memory-claude.git` (no PyPI publishing for now; revisit if there's real demand)
+- [x] Misleading PyPI badge removed from README (it linked to upstream's PyPI namespace, not the fork)
 - [ ] `--brief` JSON output flag — drops `session_summary` to honor the original ~50-token claim with structured output
 - [ ] Cursor backend
 - [ ] OpenAI Codex backend
