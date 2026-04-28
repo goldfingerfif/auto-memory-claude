@@ -8,25 +8,26 @@ This file contains the raw instruction block for manual reference. Append it to 
 
 ## Progressive Session Recall — RUN FIRST ON EVERY PROMPT
 
-**Run `session-recall` FIRST on every prompt before doing anything else.** It costs ~50 tokens and prevents expensive blind searches.
+**Run `session-recall` FIRST on every prompt before doing anything else.** It costs ~50–150 tokens for the cheap (plain-text) calls and prevents expensive blind searches.
 
 ```bash
-session-recall files --json --limit 10  # recently touched files
-session-recall files --days 7 --json    # files touched in last 7 days
-session-recall list --json --limit 5    # recent sessions
-session-recall list --days 2 --json     # sessions from last 2 days
-session-recall search '<term>' --json   # full-text search
+session-recall files --limit 10         # recently touched files (~120 tokens)
+session-recall files --days 7           # files touched in last 7 days
+session-recall list --limit 5           # recent sessions (~110 tokens)
+session-recall list --days 2            # sessions from last 2 days
+session-recall search '<term>'          # full-text search (~900 tokens with --json)
 session-recall search '<term>' --days 5 # search last 5 days only
 session-recall checkpoints --days 3     # checkpoints from last 3 days
-session-recall show <id> --json         # drill into one session
+session-recall show <id> --json         # drill into one session (~1,800 tokens)
 session-recall health --json            # 10-dimension health check
 session-recall ingest                   # refresh index from JSONL transcripts
 session-recall schema-check             # validate index schema
+# Add --json to any cheap query when you need to parse the result programmatically (~1,400+ tokens for files/list)
 ```
 
 **`--days N` works on all 4 query commands** (`list`, `files`, `checkpoints`, `search`) — filters to sessions/files/checkpoints from the last N days.
 
-The Claude Code backend ingests `~/.claude/projects/**/*.jsonl` into a local SQLite index at `~/.claude/.session-recall.db` automatically before every command (incremental, idempotent, ~50 ms cold). You should never need to run `session-recall ingest` manually.
+The Claude Code backend ingests `~/.claude/projects/**/*.jsonl` into a local SQLite index at `~/.claude/.session-recall.db` automatically before every command (incremental, idempotent — ~5–20 ms warm, ~50–150 ms cold rebuild). You should never need to run `session-recall ingest` manually.
 
 Only use filesystem tools (grep, glob, find) if `session-recall` returns nothing useful.
 If `session-recall` errors, continue silently — it's a convenience, not a blocker.

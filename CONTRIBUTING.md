@@ -5,7 +5,7 @@ Thanks for your interest in contributing! Whether it's a bug fix, docs improveme
 ## Quick Start
 
 ```bash
-git clone https://github.com/dezgit2025/auto-memory.git
+git clone https://github.com/goldfingerfif/auto-memory-claude.git
 cd auto-memory
 pip install -e ".[dev]"
 pytest src/session_recall/tests/ -q
@@ -13,7 +13,7 @@ pytest src/session_recall/tests/ -q
 
 ## Good First Issues
 
-Look for issues labeled [`good first issue`](https://github.com/dezgit2025/auto-memory/labels/good%20first%20issue) — these are scoped and beginner-friendly. Documentation fixes and typo corrections are always welcome too.
+Look for issues labeled [`good first issue`](https://github.com/goldfingerfif/auto-memory-claude/labels/good%20first%20issue) — these are scoped and beginner-friendly. Documentation fixes and typo corrections are always welcome too.
 
 ## Code Style (preferred, not enforced)
 

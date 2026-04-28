@@ -2,18 +2,18 @@
 
 ## Your AI coding agent has amnesia. Here's the fix.
 
-*~1,900 lines of Python. Zero dependencies. Saves you an hour a day.*
+*~2,300 lines of Python. Zero dependencies. Saves you an hour a day.*
 
-> Built by [Desi Villanueva](https://github.com/dezgit2025)
+> Originally created by [Desi Villanueva](https://github.com/dezgit2025) · This fork maintained at [goldfingerfif/auto-memory-claude](https://github.com/goldfingerfif/auto-memory-claude)
 
 [![PyPI](https://img.shields.io/pypi/v/auto-memory)](https://pypi.org/project/auto-memory/)
-[![CI](https://github.com/dezgit2025/auto-memory/actions/workflows/test.yml/badge.svg)](https://github.com/dezgit2025/auto-memory/actions/workflows/test.yml)
+[![CI](https://github.com/goldfingerfif/auto-memory-claude/actions/workflows/test.yml/badge.svg)](https://github.com/goldfingerfif/auto-memory-claude/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-126%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-138%20passed-brightgreen)]()
 
-**Zero-dependency CLI that turns your AI agent's local session history into instant recall — no MCP server, read-only, schema-checked. ~50 tokens per prompt.**
+**Zero-dependency CLI that turns your AI agent's local session history into instant recall — no MCP server, read-only, schema-checked. ~50–150 tokens (plain text) / ~1,400 (JSON) per prompt — see Usage.**
 
 **Works with:** Claude Code · GitHub Copilot CLI  
 **Coming soon:** Cursor · Codex
@@ -37,7 +37,7 @@ Now give your agent a memory. Point it at [`deploy/install.md`](deploy/install.m
 
 | Backend | Reads | Notes |
 |---|---|---|
-| Claude Code | `~/.claude/projects/**/*.jsonl` | Auto-ingested into a local SQLite index at `~/.claude/.session-recall.db` (incremental, ~50 ms cold). |
+| Claude Code | `~/.claude/projects/**/*.jsonl` | Auto-ingested into a local SQLite index at `~/.claude/.session-recall.db` (incremental — ~5–20 ms warm, ~50–150 ms cold rebuild). |
 | GitHub Copilot CLI | `~/.copilot/session-store.db` | Read direct from Copilot's own store. On Windows 11 + WSL2 you must enable `/experimental` → `SESSION_STORE` first (see [`deploy/install.md`](deploy/install.md)). |
 
 Both modes expose the same CLI: `list`, `files`, `search`, `show`, `checkpoints`, `health`, `schema-check`. The Claude backend additionally has `ingest` for forced rebuilds.
@@ -67,18 +67,19 @@ I timed it over a week: **68 minutes per day** lost to re-orientation after comp
 
 Every 20–30 turns, the context warning hits and you get two bad choices: ignore it and watch the agent hallucinate, or run `/compact` and watch it lobotomize itself into a tidy two-paragraph summary of a 30-minute investigation. Either way you lose five minutes re-narrating your own project back to the agent like it's a new hire. That's not a workflow — that's a hamster wheel.
 
-## The 200x ROI
+## The ROI
 
 Here's the cost comparison that made me build this:
 
 | Operation | Tokens | What you get |
 |-----------|--------|-------------|
-| `grep -r "auth" src/` | ~5,000-10,000 | 500 results, mostly irrelevant |
-| `find . -name "*.py"` | ~2,000 | Every Python file, no context |
-| Agent re-orientation | ~2,000 | You re-explaining yesterday |
-| **`auto-memory files --json --limit 10`** | **~50** | **Exactly the 10 files you touched yesterday** |
+| `grep -r "auth" src/` | ~1,000-10,000 | varies with hit count, mostly irrelevant |
+| `find . -name "*.py"` | ~800-2,000 | every Python file, no context |
+| Agent re-orientation | ~2,000 | you re-explaining yesterday |
+| **`auto-memory files --limit 10`** (plain text) | **~120** | **Exactly the 10 files you touched yesterday** |
+| `auto-memory files --json --limit 10` | ~1,400 | same data, JSON-shaped (use when an agent will parse the result) |
 
-**50 tokens vs 10,000 — a 200x improvement.**
+**~120 tokens vs ~10,000 — a 40–80× improvement (plain text) or ~5–10× (JSON), depending on hit count and session-summary length.**
 
 ## Before & After
 
@@ -108,11 +109,11 @@ Total: ~16K tokens burned, 8 minutes elapsed, agent still isn't oriented.
 ```
 You: Fix the failing test in the auth module
 
-Agent: [auto-recall: auto-memory files --json --limit 10]
+Agent: [auto-recall: auto-memory files --limit 10]      ← ~120 tokens
        → src/auth/refresh.py, tests/test_refresh_edge_cases.py,
          src/auth/token_store.py (last touched 14h ago)
 
-       [auto-recall: auto-memory list --json --limit 3]
+       [auto-recall: auto-memory list --limit 3]        ← ~80 tokens
        → Yesterday: "Fixed token refresh race condition, one edge case
          test still failing on expired token + network timeout combo"
 
@@ -122,7 +123,7 @@ Agent: [auto-recall: auto-memory files --json --limit 10]
        $ cat tests/test_refresh_edge_cases.py      ← 1K tokens (targeted)
 ```
 
-Total: ~1.1K tokens, 30 seconds, agent is immediately productive.
+Total: ~1.2K tokens, 30 seconds, agent is immediately productive. Use `--json` instead of plain text when an agent needs to parse the result programmatically — that adds about 1.3K tokens to the recall step.
 
 ## How it compares
 
@@ -138,7 +139,7 @@ Total: ~1.1K tokens, 30 seconds, agent is immediately productive.
 - **Context window = RAM.** Fast, limited, clears on restart.
 - **Agent's session store = Disk.** Persistent, searchable, grows forever — Copilot's `session-store.db` or Claude's JSONL transcripts.
 
-auto-memory is the **page fault handler** — it pulls exact facts from disk in ~50 tokens when the agent needs them.
+auto-memory is the **page fault handler** — it pulls exact facts from disk in ~50–150 tokens (plain text) when the agent needs them.
 
 **It's not unlimited context. It's unlimited context *recall*.** In practice, same thing.
 
@@ -205,20 +206,22 @@ No special syntax. The agent reads your session history and gets oriented in sec
 
 Progressive disclosure — most prompts never get past Tier 1.
 
-**Tier 1 — Cheap scan (~50 tokens).** Usually enough.
+**Tier 1 — Cheap scan (~50–150 tokens plain text / ~1,400 JSON).** Usually enough. Use plain text for the lowest token cost; reach for `--json` when an agent will parse the result programmatically.
 
 ```bash
-session-recall files --json --limit 10
-session-recall list --json --limit 5
+session-recall files --limit 10           # ~120 tokens
+session-recall list --limit 5             # ~110 tokens
+session-recall files --json --limit 10    # ~1,400 tokens (structured)
+session-recall list --json --limit 5      # ~1,600 tokens (structured)
 ```
 
-**Tier 2 — Focused recall (~200 tokens).** When Tier 1 isn't enough.
+**Tier 2 — Focused recall (~900 tokens).** When Tier 1 isn't enough.
 
 ```bash
 session-recall search "specific term" --json
 ```
 
-**Tier 3 — Full session detail (~500 tokens).** Only when investigating something specific.
+**Tier 3 — Full session detail (~1,800 tokens).** Only when investigating something specific.
 
 ```bash
 session-recall show <session-id> --json
@@ -232,7 +235,20 @@ session-recall schema-check    # validate DB schema (after agent upgrades)
 session-recall ingest --full   # Claude only: drop & rebuild index from JSONL
 ```
 
+### Tested on Claude Code (April 2026)
+
+Numbers above were measured on a local Claude Code index of 21 sessions. The dominant per-call cost is the `session_summary` field — the first user prompt of each session, included in every `--json` row. Claude Code prompts skew longer than Copilot CLI prompts, so a Claude index with 100+ sessions will see Tier 1 `--json` output around **1.4K–2K tokens** vs **~50–150 tokens in plain text**. Methodology: chars in stdout ÷ ~3.3 chars/token for JSON, ÷ ~4.0 for plain text. Re-measure on your own index with:
+
+```bash
+session-recall files --json --limit 10 | py -c "import sys; d=sys.stdin.read(); print(f'{len(d)/3.3:.0f} tokens')"
+session-recall list --limit 5 | py -c "import sys; d=sys.stdin.read(); print(f'{len(d)/4.0:.0f} tokens')"
+```
+
+Rule of thumb: have the agent use plain-text recall when it will read the result directly, and `--json` only when something downstream parses it.
+
 ## Health Check
+
+Example output — your numbers will differ depending on your index size and platform (Windows consoles fall back to ASCII glyphs):
 
 ```
 Dim Name                   Zone     Score  Detail
@@ -288,9 +304,9 @@ See [ROADMAP.md](ROADMAP.md).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines. Issues, PRs, and docs improvements are welcome.
 
-⭐ **If auto-memory saved you time, [star the repo](https://github.com/dezgit2025/auto-memory)** — it's the best way to help others find it.
+⭐ **If auto-memory saved you time, [star the repo](https://github.com/goldfingerfif/auto-memory-claude)** — it's the best way to help others find it.
 
-🔗 **Share it:** *"Zero-dependency CLI that gives your AI coding agent session memory. Read-only, schema-checked, ~50 tokens per prompt."* → [github.com/dezgit2025/auto-memory](https://github.com/dezgit2025/auto-memory)
+🔗 **Share it:** *"Zero-dependency CLI that gives your AI coding agent session memory. Read-only, schema-checked, ~50–150 tokens (plain text) per prompt."* → [github.com/goldfingerfif/auto-memory-claude](https://github.com/goldfingerfif/auto-memory-claude)
 
 ## Disclaimer
 
