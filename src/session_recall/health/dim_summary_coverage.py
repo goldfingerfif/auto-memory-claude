@@ -36,7 +36,11 @@ def check(backend=None) -> dict:
         return {"name": "Summary Coverage", "score": 0, "zone": "RED",
                 "detail": str(e), "hint": HINT}
     pct = (with_summary / total * 100) if total > 0 else 0
-    result = score_dim(pct, green_threshold=80, amber_threshold=40)
+    # green=50 (not 80) so that 100% coverage actually hits the 10.0 cap —
+    # `score_dim` needs value ≥ 2 × green_threshold to plateau at 10, and a
+    # percentage is bounded at 100. With green=50: 100% → 10.0, 80% → 8.8 GREEN,
+    # 50% → 7.0 GREEN, 25% → AMBER, 0% → RED.
+    result = score_dim(pct, green_threshold=50, amber_threshold=25)
     detail = f"{pct:.0f}% ({with_summary}/{total})"
     if is_claude:
         detail += " (auto-derived)"

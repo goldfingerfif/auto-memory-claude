@@ -47,4 +47,8 @@ def build() -> Backend:
         expected_schema=EXPECTED_SCHEMA,
         ensure_index=ensure_index,
         freshness_signal=freshness_signal,
+        # Claude Code sessions are long (50–100+ turns each); a small corpus
+        # already represents thousands of recall-eligible turns. Tuned so a
+        # week of regular use scores a clean 10 instead of perpetual 8/9.
+        corpus_thresholds=(5, 2),
     )
